@@ -1,0 +1,2 @@
+# vidgen
+generate shorts
