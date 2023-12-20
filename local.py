@@ -110,13 +110,12 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
         headers={"Content-Type": "application/json"},
         json={
             "input": {
-                "prompt": f"Write a sequence of short scene descriptions for a movie trailer about {prompt}, separate each scene with newlines. The scene descriptions will be used as prompts for an image generation model.",
+                "prompt": f"Write a sequence of short image prompts for the scenes in a movie trailer about {prompt}. Each prompt= will be used as input to an image generation model. Each scene description uses adjectives and other prompt engineering tricks for high quality cinematic images. Separate each prompt with newlines, do not number the lines. There should be 10 prompts total.",
                 "top_k": 50,
                 "top_p": 0.9,
                 "temperature": 0.6,
                 "max_new_tokens": 1024,
                 "presence_penalty": 0,
-                "prompt_template": "<s>[INST] {prompt} [/INST] ",
                 "frequency_penalty": 0,
             }
         },
@@ -132,8 +131,8 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
             headers={"Content-Type": "application/json"},
             json={
                 "input": {
-                    "width": 768,
-                    "height": 768,
+                    "width": 544,
+                    "height": 960,
                     "prompt": scene_prompt,
                     "refine": "expert_ensemble_refiner",
                     "scheduler": "K_EULER",
@@ -178,6 +177,7 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
                     },
                 },
             )
+            
 
     # ---- MUSICGEN
     docker_process = make_docker("musicgen_container")
