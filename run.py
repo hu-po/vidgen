@@ -79,34 +79,48 @@ def nuke_docker():
         os.system(f"docker rm {containers}")
     os.system("docker container prune -f")
 
+
 def make_docker(name: str):
     nuke_docker()
-    docker_process = subprocess.Popen([ "docker", "run", "--rm", "-p", "5000:5000", "--gpus=all", name])
+    docker_process = subprocess.Popen(
+        ["docker", "run", "--rm", "-p", "5000:5000", "--gpus=all", name]
+    )
     time.sleep(20)  # Let the docker container startup
     return docker_process
 
 
-def make_short(
-    output_dir: str = "/home/oop/dev/data",
-    output_video_filename: str = "test_short.mp4",
-    prompt: str = "short story about a white bengal cat",  
-):
+def extract_frame_number(frame_path):
+    # Extract the number from the filename, assuming the filename format is controlnet_pose_<number>.png
+    frame_name = frame_path.split("/")[-1]
+    return int(frame_name.split("_")[-1].split(".")[0])
+
+
+def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
+    # Generate a unique id for this generation session
+    session_id = str(uuid.uuid4())[:6]
+
+    # Create a output folder for the session id and use that as the output dir
+    output_dir = os.path.join(base_output_dir, session_id)
+    os.makedirs(output_dir, exist_ok=True)
+
     # ---- MIXTRAL
     docker_process = make_docker("mixtral")
     response = requests.post(
         "http://localhost:5000/predictions",
         headers={"Content-Type": "application/json"},
         json={
-                "input": {
-                    "prompt": f"Write a series of short scene descriptions for a movie trailer about {prompt}, separate each scene with newlines. The scene descriptions will be used as prompts for an image generation model.",
-                    "top_k": 50,
-                    "top_p": 0.9,
-                    "temperature": 0.6,
-                    "max_new_tokens": 1024,
-                    "presence_penalty": 0,
-                    "prompt_template": "<s>[INST] {prompt} [/INST] ",
-                    "frequency_penalty": 0,
-                }})
+            "input": {
+                "prompt": f"Write a sequence of short scene descriptions for a movie trailer about {prompt}, separate each scene with newlines. The scene descriptions will be used as prompts for an image generation model.",
+                "top_k": 50,
+                "top_p": 0.9,
+                "temperature": 0.6,
+                "max_new_tokens": 1024,
+                "presence_penalty": 0,
+                "prompt_template": "<s>[INST] {prompt} [/INST] ",
+                "frequency_penalty": 0,
+            }
+        },
+    )
     scene_prompts = response.json()["output"].split("\n")
     docker_process.terminate()
     nuke_docker()
@@ -160,11 +174,11 @@ def make_short(
                         "video_length": "14_frames_with_svd",
                         "sizing_strategy": "maintain_aspect_ratio",
                         "motion_bucket_id": 127,
-                        "frames_per_second": 6
+                        "frames_per_second": 6,
                     },
                 },
             )
-    
+
     # ---- MUSICGEN
     docker_process = make_docker("musicgen_container")
     response = requests.post(
@@ -177,9 +191,11 @@ def make_short(
             }
         },
     )
-            
+
     # Combine scenes and audio with ffmpeg
-    os.system(f"ffmpeg -r 6 -f image2 -s 768x768 -i {os.path.join(output_dir, 'keyframe_%05d.png')} -i {os.path.join(output_dir, 'audio.wav')} -shortest -c:v libx264 -pix_fmt yuv420p {os.path.join(output_dir, output_video_filename)}")
+    os.system(
+        f"ffmpeg -r 6 -f image2 -s 768x768 -i {os.path.join(output_dir, 'keyframe_%05d.png')} -i {os.path.join(output_dir, 'audio.wav')} -shortest -c:v libx264 -pix_fmt yuv420p {os.path.join(output_dir, output_video_filename)}"
+    )
 
 
 if __name__ == "__main__":
@@ -188,8 +204,4 @@ if __name__ == "__main__":
         "horror movie about an evil banana",
     ]
     for prompt in prompt_values:
-        make_short(
-            output_dir="/home/oop/dev/data/",
-            output_video_filename=f"output_{prompt[:5]}.mp4",
-            prompt=prompt,
-        )
+        make_short("/home/oop/dev/data/", f"output_{prompt[:5]}.mp4", prompt)
