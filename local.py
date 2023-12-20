@@ -95,7 +95,7 @@ def extract_frame_number(frame_path):
     return int(frame_name.split("_")[-1].split(".")[0])
 
 
-def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
+def make_short(base_output_dir: str, output_video_filename: str, story_prompt: str, style_prompt: str):
     # Generate a unique id for this generation session
     session_id = str(uuid.uuid4())[:6]
 
@@ -110,7 +110,7 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
         headers={"Content-Type": "application/json"},
         json={
             "input": {
-                "prompt": f"Write a sequence of short image prompts for the scenes in a movie trailer about {prompt}. Each prompt= will be used as input to an image generation model. Each scene description uses adjectives and other prompt engineering tricks for high quality cinematic images. Separate each prompt with newlines, do not number the lines. There should be 10 prompts total.",
+                "prompt": f"Write a sequence of short image prompts for the scenes in a movie trailer about {story_prompt}. Each prompt= will be used as input to an image generation model. Each scene description uses adjectives and other prompt engineering tricks for high quality cinematic images. Separate each prompt with newlines, do not number the lines. There should be 10 prompts total.",
                 "top_k": 50,
                 "top_p": 0.9,
                 "temperature": 0.6,
@@ -133,7 +133,7 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
                 "input": {
                     "width": 544,
                     "height": 960,
-                    "prompt": scene_prompt,
+                    "prompt": f"{scene_prompt}, {style_prompt}",
                     "refine": "expert_ensemble_refiner",
                     "scheduler": "K_EULER",
                     "lora_scale": 0.6,
@@ -172,7 +172,7 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
                         "decoding_t": 7,
                         "video_length": "14_frames_with_svd",
                         "sizing_strategy": "maintain_aspect_ratio",
-                        "motion_bucket_id": 127,
+                        "motion_bucket_id": 20,
                         "frames_per_second": 6,
                     },
                 },
@@ -199,9 +199,19 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
 
 
 if __name__ == "__main__":
-    prompt_values = [
+    style_prompts = [
+        "cyberpunk art, inspired by Victor Mosquera, conceptual art, style of raymond swanland, yume nikki, restrained, ghost in the shell",
+        "inspired by Krenz Cushart, neoism, kawacy, wlop, gits anime",
+    ]
+    story_prompts = [
         "cute story about a penguin and a polar bear",
         "horror movie about an evil banana",
     ]
-    for prompt in prompt_values:
-        make_short("/home/oop/dev/data/", f"output_{prompt[:5]}.mp4", prompt)
+    for story_prompt in story_prompts:
+        for style_prompt in style_prompts:
+            make_short(
+                "/home/oop/dev/data/",
+                f"out_{story_prompt[:5]}_{style_prompt[:5]}.mp4",
+                story_prompt,
+                style_prompt,
+            )

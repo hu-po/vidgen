@@ -10,7 +10,7 @@ from io import BytesIO
 import requests
 from PIL import Image
 
-def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
+def make_short(base_output_dir: str, output_video_filename: str, story_prompt: str, style_prompt: str):
     # Generate a unique id for this generation session
     session_id = str(uuid.uuid4())[:6]
 
@@ -83,9 +83,19 @@ def make_short(base_output_dir: str, output_video_filename: str, prompt: str):
 
 
 if __name__ == "__main__":
-    prompt_values = [
+    style_prompts = [
+        "cyberpunk art, inspired by Victor Mosquera, conceptual art, style of raymond swanland, yume nikki, restrained, ghost in the shell",
+        "inspired by Krenz Cushart, neoism, kawacy, wlop, gits anime",
+    ]
+    story_prompts = [
         "cute story about a penguin and a polar bear",
         "horror movie about an evil banana",
     ]
-    for prompt in prompt_values:
-        make_short("/home/oop/dev/data/", f"output_{prompt[:5]}.mp4", prompt)
+    for story_prompt in story_prompts:
+        for style_prompt in style_prompts:
+            make_short(
+                "/home/oop/dev/data/",
+                f"out_{story_prompt[:5]}_{style_prompt[:5]}.mp4",
+                story_prompt,
+                style_prompt,
+            )
