@@ -170,7 +170,7 @@ def make_short(base_output_dir: str, output_video_filename: str, story_prompt: s
                         "input_image": f"data:image/png;base64,{base64.b64encode(img_file.read()).decode('utf-8')}",
                         "cond_aug": 0.02,
                         "decoding_t": 7,
-                        "video_length": "14_frames_with_svd",
+                        "video_length": "25_frames_with_svd_xt",
                         "sizing_strategy": "maintain_aspect_ratio",
                         "motion_bucket_id": 20,
                         "frames_per_second": 6,
@@ -186,7 +186,7 @@ def make_short(base_output_dir: str, output_video_filename: str, story_prompt: s
         headers={"Content-Type": "application/json"},
         json={
             "input": {
-                "text": f"cool trendy bass heavy electronic music that would fit nicely in a movie trailer about {prompt}",
+                "text": f"cool trendy bass heavy electronic music that would fit nicely in a movie trailer about {story_prompt}",
                 "duration": 12,
             }
         },

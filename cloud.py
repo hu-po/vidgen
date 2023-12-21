@@ -63,7 +63,7 @@ def make_short(base_output_dir: str, output_video_filename: str, story_prompt: s
         "cond_aug": 0.02,
         "decoding_t": 7,
         "input_image": "https://example.com/out-0.png",
-        "video_length": "14_frames_with_svd",
+        "video_length": "25_frames_with_svd_xt",
         "sizing_strategy": "maintain_aspect_ratio",
         "motion_bucket_id": 127,
         "frames_per_second": 6
