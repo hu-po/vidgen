@@ -16,5 +16,9 @@ wget -c https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/resolve/
 wget -c https://huggingface.co/stabilityai/stable-diffusion-xl-refiner-1.0/resolve/main/sd_xl_refiner_1.0.safetensors -P ./models/checkpoints/
 wget -c https://huggingface.co/comfyanonymous/clip_vision_g/resolve/main/clip_vision_g.safetensors -P ./models/clip_vision/
 wget -c https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors -P ./models/vae/
+wget -c https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt/resolve/main/svd_xt.safetensors -P ./models/checkpoints/
+wget -c https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt/resolve/main/svd_xt_image_decoder.safetensors ./models/checkpoints/
+wget -c https://huggingface.co/stabilityai/stable-video-diffusion-img2vid/resolve/main/svd.safetensors -P ./models/checkpoints/
+wget -c https://huggingface.co/stabilityai/stable-video-diffusion-img2vid/resolve/main/svd_image_decoder.safetensors ./models/checkpoints/
 python main.py --force-fp16
 ```
