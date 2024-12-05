@@ -3,6 +3,7 @@ import replicate
 import uuid
 import logging
 import asyncio
+import requests
 from typing import Any, Dict, List
 from ai import AI_MODEL_MAP, ENABLED_MODELS
 
@@ -92,7 +93,17 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
                     "embedded_guidance_scale": 6
                 },
             )
+            video_url = output  # Assuming output is the URL
             video_path = os.path.join(model_output_dir, f"scene_{i}.mp4")
+            response = requests.get(video_url, stream=True)
+            if response.status_code == 200:
+                with open(video_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                logging.info(f"Downloaded video for scene {i} using {ai_model}: {video_path}")
+            else:
+                logging.error(f"Failed to download video for scene {i}: {response.status_code}")
+
             scene_videos.append(video_path)
             logging.info(f"Generated video for scene {i} using {ai_model}: {video_path}")
 
