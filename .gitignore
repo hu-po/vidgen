@@ -1,0 +1,5 @@
+# python
+__pycache__/
+
+# ffmpeg
+*.mp4

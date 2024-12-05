@@ -5,6 +5,7 @@ import logging
 import asyncio
 from typing import Any, Callable, Dict, List
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from functools import wraps
 
 log = logging.getLogger(__name__)
 

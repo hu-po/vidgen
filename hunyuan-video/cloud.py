@@ -4,7 +4,7 @@ import uuid
 import logging
 import asyncio
 from typing import Any, Dict, List
-from .ai import AI_MODEL_MAP, ENABLED_MODELS
+from ai import AI_MODEL_MAP, ENABLED_MODELS
 
 log = logging.getLogger(__name__)
 log.info(f"Enabled models: {ENABLED_MODELS}")
@@ -114,6 +114,10 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger("hunyuan-video.ai").setLevel(logging.DEBUG)
+    logging.getLogger("hunyuan-video.cloud").setLevel(logging.DEBUG)
+
     style_prompts = [
         "realistic, cinematic, christopher nolan",
         "cyberpunk, arcane, pixar",
@@ -125,4 +129,4 @@ if __name__ == "__main__":
     ]
     for story_prompt in story_prompts:
         for style_prompt in style_prompts:
-            make_short("/home/oop/dev/data/hunyuan-video-replicate", story_prompt, style_prompt, ENABLED_MODELS)
+            make_short("/home/oop/dev/data/hunyuan-video-replicate", story_prompt, style_prompt)
