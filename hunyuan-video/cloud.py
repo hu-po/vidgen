@@ -78,8 +78,7 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
             f.write(f"style_prompt:\n{style_prompt}\n")
 
         scene_videos = []
-        scenes = scenes.splitlines()
-        scenes = [scene.strip() for scene in scenes if scene.strip()]
+        scenes = [scene.strip() for scene in scenes.splitlines() if scene]
         for i, scene in enumerate(scenes):
             with open(os.path.join(model_output_dir, f"scene_{i}.txt"), 'w') as f:
                 f.write(scene)
