@@ -78,10 +78,9 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
 
         scene_videos = []
         for i, scene in enumerate(scenes.splitlines()):
-            video_path = os.path.join(model_output_dir, f"scene_{i}.mp4")
             with open(os.path.join(model_output_dir, f"scene_{i}.txt"), 'w') as f:
                 f.write(scene)
-            replicate.run(
+            output = replicate.run(
                 "tencent/hunyuan-video:847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405",
                 input={
                     "width": WIDTH,
@@ -92,8 +91,8 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
                     "video_length": 129,
                     "embedded_guidance_scale": 6
                 },
-                output_file=video_path
             )
+            video_path = os.path.join(model_output_dir, f"scene_{i}.mp4")
             scene_videos.append(video_path)
             logging.info(f"Generated video for scene {i} using {ai_model}: {video_path}")
 
@@ -114,11 +113,6 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
         final_video_path = os.path.join(model_output_dir, f"final_video_{session_id}_{ai_model}.mp4")
         os.rename(combined_video_path, final_video_path)
         logging.info(f"Final video saved to: {final_video_path}")
-
-        filelist_path = os.path.join(model_output_dir, "filelist.txt")
-        with open(filelist_path, 'w') as f:
-            for video in scene_videos:
-                f.write(f"file '{video}'\n")
 
 
 if __name__ == "__main__":
