@@ -10,26 +10,32 @@ log = logging.getLogger(__name__)
 log.info(f"Enabled models: {ENABLED_MODELS}")
 
 NUM_SCENES : int = 3
-WIDTH : int = 854
-HEIGHT : int = 480
+WIDTH : int = 480
+HEIGHT : int = 854
 
-async def async_generate_storyboard(ai_models: List[str], story_prompt: str, style_prompt: str) -> Dict[str, str]:
-    log.debug(f"Starting AI inference and storyboard generation - models: {ai_models}")
+async def async_generate_storyboard(story_prompt: str, style_prompt: str) -> Dict[str, str]:
+    log.debug(f"Starting storyboard generation")
     try:
         if not ENABLED_MODELS:
             log.error("No AI APIs enabled")
             raise ValueError("No AI APIs enabled")
         
-        prompt = f"Generate a storyboard for a short video with {NUM_SCENES} scenes. The story prompt is: {story_prompt}. The style prompt is: {style_prompt}. Return the storyboard as a newline separated list"
+        prompt = f"""Generate video generation prompts for {NUM_SCENES} scenes that will be combined into a short video for a youtube short story.
+The description of the story is: {story_prompt}.
+In the folowing style: {style_prompt}.
+Return the {NUM_SCENES} prompts in a newline separated list. ONLY return the prompts, nothing else."""
         tasks = []
-        task_keys = []
+        ai_models = []
+
+#         example outputs
         
-        for ai_model in ai_models:
-            if ai_model not in ENABLED_MODELS:
-                log.error(f"Requested model {ai_model} not in enabled models: {ENABLED_MODELS}")
-                raise ValueError(f"Model {ai_model} not enabled")
-            tasks.append(await AI_MODEL_MAP[ai_model](prompt))
-            task_keys.append(ai_model)
+# "A sweeping panoramic shot of two vast futuristic cities, one dominated by sleek Musk-designed structures and the other by the organic, rounded architecture of Altman's empire, their skylines bristling with advanced technologies as they face each other across a vast expanse.\n\nAn intense close-up of Sam Altman and Elon Musk locked in a fierce mental duel, their eyes burning with determination as holographic displays and streams of data swirl around them, representing the clash of their artificial intelligences.\n\nA breathtaking aerial view of colossal robotic armies clashing in a scorched battleground between the two cities, their advanced weaponry and sleek designs contrasting with explosions and debris, as the fate of technological supremacy hangs in the balance."
+
+# "A sweeping aerial shot revealing two vast, futuristic armies clashing amidst a desolate, rocky landscape.  One army utilizes sleek, chrome technology, the other, rugged, bio-mechanical weaponry.  The style is stark, realistic, and evokes the scale of a major war.  Muted color palette, emphasizing grays, browns, and metallics.\n\n\nClose-up on Sam Altman, commanding his forces from a high-tech mobile command center. He appears calm but calculating, his face etched with determination amidst the chaos of the battle. The scene should be claustrophobic and intense, contrasting the vastness of the war with his personal struggle.\n\n\nElon Musk, surrounded by his elite guard, leads a desperate counter-attack, utilizing a powerful, experimental weapon. The scene should be filled with explosive action, showcasing the raw power of the weapon and Musk's relentless, almost desperate, ambition.  The visual style should be gritty and visceral.\n"
+
+        for ai_model in ENABLED_MODELS:
+            tasks.append(AI_MODEL_MAP[ai_model](prompt))
+            ai_models.append(ai_model)
         
         if not tasks:
             log.error("No tasks created - check enabled models and analyses")
@@ -40,7 +46,7 @@ async def async_generate_storyboard(ai_models: List[str], story_prompt: str, sty
         
         results = {
             key: resp if not isinstance(resp, Exception) else str(resp)
-            for key, resp in zip(task_keys, responses)
+            for key, resp in zip(ai_models, responses)
         }
         
         log.debug("Inference results:")
@@ -59,7 +65,7 @@ async def async_generate_storyboard(ai_models: List[str], story_prompt: str, sty
 
 def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
     session_id = str(uuid.uuid4())[:6]
-    output = asyncio.run(async_generate_storyboard(ENABLED_MODELS, story_prompt, style_prompt))
+    output = asyncio.run(async_generate_storyboard(story_prompt, style_prompt))
     logging.info(output)
 
     for ai_model, scenes in output.items():
@@ -71,8 +77,10 @@ def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
             f.write(f"style_prompt:\n{style_prompt}\n")
 
         scene_videos = []
-        for i, scene in enumerate(scenes.split('\n')):
+        for i, scene in enumerate(scenes.splitlines()):
             video_path = os.path.join(model_output_dir, f"scene_{i}.mp4")
+            with open(os.path.join(model_output_dir, f"scene_{i}.txt"), 'w') as f:
+                f.write(scene)
             replicate.run(
                 "tencent/hunyuan-video:847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405",
                 input={
