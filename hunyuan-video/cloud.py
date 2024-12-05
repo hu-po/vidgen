@@ -21,6 +21,11 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from .ai import AI_MODEL_MAP, ENABLED_MODELS
 
 log = logging.getLogger(__name__)
+log.info(f"Enabled models: {ENABLED_MODELS}")
+
+NUM_SCENES : int = 3
+WIDTH : int = 854
+HEIGHT : int = 480
 
 async def async_generate_storyboard(ai_models: List[str], story_prompt: str, style_prompt: str) -> Dict[str, str]:
     log.debug(f"Starting AI inference and storyboard generation - models: {ai_models}")
@@ -29,7 +34,7 @@ async def async_generate_storyboard(ai_models: List[str], story_prompt: str, sty
             log.error("No AI APIs enabled")
             raise ValueError("No AI APIs enabled")
         
-        prompt = f"{story_prompt}{style_prompt}"
+        prompt = f"Generate a storyboard for a short video with {NUM_SCENES} scenes. The story prompt is: {story_prompt}. The style prompt is: {style_prompt}. Return the storyboard as a newline separated list"
         tasks = []
         task_keys = []
         
@@ -66,35 +71,65 @@ async def async_generate_storyboard(ai_models: List[str], story_prompt: str, sty
         return {"error": f"AI inference failed: {str(e)}"}
 
 
-def make_short(base_output_dir: str, output_video_filename: str, story_prompt: str, style_prompt: str):
+def make_short(base_output_dir: str, story_prompt: str, style_prompt: str):
     session_id = str(uuid.uuid4())[:6]
-    output_dir = os.path.join(base_output_dir, session_id)
-    os.makedirs(output_dir, exist_ok=True)
-
-    with open(os.path.join(output_dir, 'prompt.txt'), 'w') as f:
-        f.write(f"story_prompt:\n{story_prompt}\n")
-        f.write(f"style_prompt:\n{style_prompt}\n")
-
-    output = asyncio.run(async_generate_storyboard(ai_models, story_prompt, style_prompt))
+    output = asyncio.run(async_generate_storyboard(ENABLED_MODELS, story_prompt, style_prompt))
     logging.info(output)
 
-    output = replicate.run(
-        "tencent/hunyuan-video:847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405",
-        input={
-            "width": 854,
-            "height": 480,
-            "prompt": output[0],
-            "flow_shift": 7,
-            "infer_steps": 50,
-            "video_length": 129,
-            "embedded_guidance_scale": 6
-        }
-    )
-    logging.info(output)
+    for ai_model, scenes in output.items():
+        model_output_dir = os.path.join(base_output_dir, session_id, ai_model)
+        os.makedirs(model_output_dir, exist_ok=True)
+
+        with open(os.path.join(model_output_dir, 'prompt.txt'), 'w') as f:
+            f.write(f"story_prompt:\n{story_prompt}\n")
+            f.write(f"style_prompt:\n{style_prompt}\n")
+
+        scene_videos = []
+        for i, scene in enumerate(scenes.split('\n')):
+            video_path = os.path.join(model_output_dir, f"scene_{i}.mp4")
+            replicate.run(
+                "tencent/hunyuan-video:847dfa8b01e739637fc76f480ede0c1d76408e1d694b830b5dfb8e547bf98405",
+                input={
+                    "width": WIDTH,
+                    "height": HEIGHT,
+                    "prompt": scene,
+                    "flow_shift": 7,
+                    "infer_steps": 50,
+                    "video_length": 129,
+                    "embedded_guidance_scale": 6
+                },
+                output_file=video_path
+            )
+            scene_videos.append(video_path)
+            logging.info(f"Generated video for scene {i} using {ai_model}: {video_path}")
+
+        combined_video_path = os.path.join(model_output_dir, f"final_video_{session_id}.mp4")
+        ffmpeg_command = [
+            "ffmpeg",
+            "-y",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", os.path.join(model_output_dir, "filelist.txt"),
+            "-c", "copy",
+            combined_video_path
+        ]
+
+        subprocess.run(ffmpeg_command, check=True)
+        logging.info(f"Combined video saved to: {combined_video_path}")
+
+        final_video_path = os.path.join(model_output_dir, f"final_video_{session_id}_{ai_model}.mp4")
+        os.rename(combined_video_path, final_video_path)
+        logging.info(f"Final video saved to: {final_video_path}")
+
+        filelist_path = os.path.join(model_output_dir, "filelist.txt")
+        with open(filelist_path, 'w') as f:
+            for video in scene_videos:
+                f.write(f"file '{video}'\n")
+
 
 if __name__ == "__main__":
     style_prompts = [
-        "realistic, cinematic",
+        "realistic, cinematic, christopher nolan",
         "cyberpunk, arcane, pixar",
         "trippy, wes anderson",
     ]
@@ -104,9 +139,4 @@ if __name__ == "__main__":
     ]
     for story_prompt in story_prompts:
         for style_prompt in style_prompts:
-            make_short(
-                "/home/oop/dev/data/",
-                f"out_{story_prompt[:5]}_{style_prompt[:5]}.mp4",
-                story_prompt,
-                style_prompt,
-            )
+            make_short("/home/oop/dev/data/hunyuan-video-replicate", story_prompt, style_prompt, ENABLED_MODELS)
